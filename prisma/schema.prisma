@@ -1,0 +1,83 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model CheckIn {
+  id          String   @id @default(cuid())
+  userId      String
+  checkInTime DateTime @default(now())
+  streakCount Int
+
+  @@index([userId, checkInTime(sort: Desc)])
+}
+
+model EmergencyContact {
+  id                  String   @id @default(cuid())
+  userId              String
+  name                String
+  phone               String
+  isConfirmed         Boolean  @default(false)
+  confirmationToken   String?
+  confirmationExpires DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@unique([userId, phone])
+  @@index([userId])
+  @@index([confirmationToken])
+}
+
+model UserSettings {
+  userId          String @id
+  miaThresholdHrs Int    @default(24)
+  emergencyModeEnabled   Boolean  @default(false)
+  emergencyModeEndTime   DateTime?
+  emergencyModeMultiplier Int     @default(2)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model MiaNotification {
+  userId                 String @id
+  preAlertForCheckInId   String?
+  emergencyForCheckInId  String?
+  lastWordsForCheckInId  String?
+  updatedAt              DateTime @updatedAt
+}
+
+model UserProfile {
+  userId    String  @id
+  name      String?
+  email     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AlertDelivery {
+  id        String   @id @default(cuid())
+  userId    String
+  checkInId String
+  contactId String
+  type      String
+  ok        Boolean
+  error     String?
+  createdAt DateTime @default(now())
+
+  @@unique([checkInId, contactId, type])
+  @@index([userId])
+}
+
+model LastWords {
+  userId            String   @id
+  message           String?
+  deliveryThreshold Int      @default(48)
+  updatedAt         DateTime @updatedAt
+}
