@@ -1,5 +1,16 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Database (Supabase Postgres)
+
+This project uses Prisma with a Postgres database (Supabase).
+
+1. Copy `.env.example` to `.env` and fill in `DATABASE_URL` (use the Supabase *Direct connection string* during local dev).
+2. Create tables by running:
+
+```bash
+npx prisma migrate dev --name init
+```
+
 ## Getting Started
 
 First, run the development server:
