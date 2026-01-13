@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { userToProfile } from "@/lib/supabase/user";
 import { upsertUserProfile } from "@/lib/user-profile";
@@ -24,6 +24,7 @@ export async function POST() {
   const userId = user.id;
   await upsertUserProfile(userToProfile(user));
 
+  const prisma = getPrisma();
   const now = new Date();
 
   const last = await prisma.checkIn.findFirst({

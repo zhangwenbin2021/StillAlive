@@ -1,5 +1,5 @@
 import LastWordsClient from "@/components/last-words-client";
-import { prisma } from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -12,6 +12,7 @@ export default async function LastWordsPage() {
   if (!user) redirect("/?reason=session_expired");
 
   const userId = user.id;
+  const prisma = getPrisma();
   const row = await prisma.lastWords.findUnique({
     where: { userId },
     select: { message: true, deliveryThreshold: true },

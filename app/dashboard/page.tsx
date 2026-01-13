@@ -1,5 +1,5 @@
 import DashboardClient from "@/components/dashboard-client";
-import { prisma } from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -13,6 +13,7 @@ export default async function DashboardPage() {
 
   const userId = user.id;
 
+  const prisma = getPrisma();
   const recent = await prisma.checkIn.findMany({
     where: { userId },
     orderBy: { checkInTime: "desc" },

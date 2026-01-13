@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/notify";
 
 const ALERT_TYPE_EMERGENCY_EMAIL = "EMERGENCY_EMAIL";
@@ -22,6 +22,7 @@ function fmtDateTime(date: Date) {
 }
 
 export async function runMiaAlertSweep() {
+  const prisma = getPrisma();
   const baseUrl =
     process.env.APP_BASE_URL || process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
@@ -220,4 +221,3 @@ export async function runMiaAlertSweep() {
     }
   }
 }
-

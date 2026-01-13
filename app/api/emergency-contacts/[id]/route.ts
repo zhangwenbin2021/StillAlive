@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { userToProfile } from "@/lib/supabase/user";
 import { upsertUserProfile } from "@/lib/user-profile";
@@ -25,6 +25,7 @@ export async function PATCH(
   const profile = userToProfile(user);
   await upsertUserProfile(profile);
 
+  const prisma = getPrisma();
   const id = ctx.params.id;
   const body = (await req.json().catch(() => null)) as
     | { name?: unknown; email?: unknown }
@@ -86,6 +87,7 @@ export async function DELETE(
   const userId = user?.id;
   if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
+  const prisma = getPrisma();
   const id = ctx.params.id;
   const existing = await prisma.emergencyContact.findFirst({
     where: { id, userId },

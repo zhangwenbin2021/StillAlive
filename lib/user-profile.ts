@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
 
 export async function upsertUserProfile(user: {
   id: string;
@@ -7,6 +7,7 @@ export async function upsertUserProfile(user: {
 }) {
   if (!user.id || !user.email) return;
 
+  const prisma = getPrisma();
   await prisma.userProfile.upsert({
     where: { userId: user.id },
     create: {

@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { userToProfile } from "@/lib/supabase/user";
 import { upsertUserProfile } from "@/lib/user-profile";
@@ -16,6 +16,7 @@ export async function GET() {
   const userId = user?.id;
   if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
+  const prisma = getPrisma();
   const settings = await prisma.userSettings.findUnique({
     where: { userId },
     select: {
@@ -47,6 +48,7 @@ export async function PUT(req: Request) {
 
   await upsertUserProfile(userToProfile(user));
 
+  const prisma = getPrisma();
   const body = (await req.json().catch(() => null)) as
     | { enabled?: unknown; multiplier?: unknown }
     | null;

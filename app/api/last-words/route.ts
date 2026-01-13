@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { userToProfile } from "@/lib/supabase/user";
 import { upsertUserProfile } from "@/lib/user-profile";
@@ -16,6 +16,7 @@ export async function GET() {
   const userId = user?.id;
   if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
+  const prisma = getPrisma();
   const row = await prisma.lastWords.findUnique({
     where: { userId },
     select: { message: true, deliveryThreshold: true },
@@ -43,6 +44,7 @@ export async function PUT(req: Request) {
 
     await upsertUserProfile(userToProfile(user));
 
+    const prisma = getPrisma();
     const body = (await req.json().catch(() => null)) as
       | { message?: unknown; deliveryThreshold?: unknown }
       | null;
@@ -100,6 +102,7 @@ export async function DELETE() {
     const userId = user?.id;
     if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
+    const prisma = getPrisma();
     await prisma.lastWords.upsert({
       where: { userId },
       create: { userId, message: null, deliveryThreshold: 48 },

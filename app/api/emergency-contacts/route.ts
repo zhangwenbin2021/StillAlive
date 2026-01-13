@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { userToProfile } from "@/lib/supabase/user";
 import { upsertUserProfile } from "@/lib/user-profile";
@@ -19,6 +19,7 @@ export async function GET() {
   const userId = user?.id;
   if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
+  const prisma = getPrisma();
   const contacts = await prisma.emergencyContact.findMany({
     where: { userId },
     orderBy: { createdAt: "asc" },
@@ -42,6 +43,7 @@ export async function POST(req: Request) {
 
   await upsertUserProfile(userToProfile(user));
 
+  const prisma = getPrisma();
   const body = (await req.json().catch(() => null)) as
     | { name?: unknown; email?: unknown }
     | null;

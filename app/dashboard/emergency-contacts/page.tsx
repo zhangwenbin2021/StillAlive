@@ -1,5 +1,5 @@
 import EmergencyContactsClient from "@/components/emergency-contacts-client";
-import { prisma } from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -13,6 +13,7 @@ export default async function EmergencyContactsPage() {
 
   const userId = user.id;
 
+  const prisma = getPrisma();
   const contacts = await prisma.emergencyContact.findMany({
     where: { userId },
     orderBy: { createdAt: "asc" },

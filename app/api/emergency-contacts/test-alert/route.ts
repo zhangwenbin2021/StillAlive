@@ -1,5 +1,5 @@
 import { sendEmail } from "@/lib/notify";
-import { prisma } from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 
 const ALLOWED_THRESHOLDS = new Set([12, 24, 36, 48]);
@@ -30,6 +30,7 @@ export async function POST() {
   const userId = user?.id;
   if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
+  const prisma = getPrisma();
   const profile = await prisma.userProfile.findUnique({
     where: { userId },
     select: { name: true, email: true },
