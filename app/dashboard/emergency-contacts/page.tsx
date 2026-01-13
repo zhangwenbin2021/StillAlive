@@ -20,8 +20,7 @@ export default async function EmergencyContactsPage() {
     select: {
       id: true,
       name: true,
-      phone: true,
-      isConfirmed: true,
+      email: true,
     },
   });
 

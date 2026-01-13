@@ -23,16 +23,12 @@ model EmergencyContact {
   id                  String   @id @default(cuid())
   userId              String
   name                String
-  phone               String
-  isConfirmed         Boolean  @default(false)
-  confirmationToken   String?
-  confirmationExpires DateTime?
+  email               String
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
-  @@unique([userId, phone])
+  @@unique([userId, email])
   @@index([userId])
-  @@index([confirmationToken])
 }
 
 model UserSettings {

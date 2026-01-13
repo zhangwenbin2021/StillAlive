@@ -1,10 +1,12 @@
-import { sendSms } from "@/lib/notify";
-import { isValidE164 } from "@/lib/phone";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { userToProfile } from "@/lib/supabase/user";
-import { createConfirmationToken } from "@/lib/tokens";
 import { upsertUserProfile } from "@/lib/user-profile";
+
+function isValidEmail(email: string) {
+  if (email.length > 320) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
 
 export async function GET() {
   const supabase = await createClient();
@@ -21,7 +23,7 @@ export async function GET() {
     where: { userId },
     orderBy: { createdAt: "asc" },
     take: 3,
-    select: { id: true, name: true, phone: true, isConfirmed: true },
+    select: { id: true, name: true, email: true },
   });
 
   return Response.json({ contacts });
@@ -41,14 +43,14 @@ export async function POST(req: Request) {
   await upsertUserProfile(userToProfile(user));
 
   const body = (await req.json().catch(() => null)) as
-    | { name?: unknown; phone?: unknown }
+    | { name?: unknown; email?: unknown }
     | null;
   const name = typeof body?.name === "string" ? body.name.trim() : "";
-  const phone = typeof body?.phone === "string" ? body.phone.trim() : "";
+  const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
 
-  if (!name || !phone || !isValidE164(phone)) {
+  if (!name || !email || !isValidEmail(email)) {
     return Response.json(
-      { error: "Please enter a valid phone number (E.164 format)" },
+      { error: "Please enter a valid email address." },
       { status: 400 },
     );
   }
@@ -62,43 +64,24 @@ export async function POST(req: Request) {
   }
 
   const existing = await prisma.emergencyContact.findUnique({
-    where: { userId_phone: { userId, phone } },
+    where: { userId_email: { userId, email } },
     select: { id: true },
   });
   if (existing) {
     return Response.json(
-      { error: "This phone number is already added." },
+      { error: "This email address is already added." },
       { status: 409 },
     );
   }
-
-  const token = createConfirmationToken();
-  const expires = new Date(Date.now() + 1000 * 60 * 60 * 24);
 
   const contact = await prisma.emergencyContact.create({
     data: {
       userId,
       name,
-      phone,
-      isConfirmed: false,
-      confirmationToken: token,
-      confirmationExpires: expires,
+      email,
     },
-    select: { id: true, name: true, phone: true, isConfirmed: true },
+    select: { id: true, name: true, email: true },
   });
 
-  const baseUrl =
-    process.env.APP_BASE_URL ||
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    "http://localhost:3000";
-  const url = `${baseUrl}/confirm-contact?token=${encodeURIComponent(token)}`;
-  const profile = userToProfile(user);
-  const sms = `[Still Alive?] Alert: ${profile.name ?? "Your friend"} has set you as their emergency contact. Click the link to confirm: ${url}. After confirmation, you’ll be notified if they miss their check-in deadline.`;
-
-  const smsResult = await sendSms(phone, sms);
-
-  return Response.json({
-    contact,
-    smsSent: smsResult.ok,
-  });
+  return Response.json({ contact });
 }

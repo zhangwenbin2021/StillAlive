@@ -37,6 +37,26 @@ async function deleteLastWords() {
   if (!res.ok) throw new Error(data?.error || "Failed to delete");
 }
 
+async function sendTestLastWords() {
+  const res = await fetch("/api/last-words/test-send", { method: "POST" });
+  const text = await res.text();
+  const data =
+    (JSON.parse(text || "null") as
+      | {
+          error?: string;
+          sent?: number;
+          failed?: number;
+          results?: Array<{ email: string; ok: boolean; error: string | null }>;
+        }
+      | null) ?? null;
+  if (!res.ok) throw new Error(data?.error || "Failed to send test email");
+  return data as {
+    sent: number;
+    failed: number;
+    results?: Array<{ email: string; ok: boolean; error: string | null }>;
+  };
+}
+
 function clamp500(text: string) {
   return text.length > 500 ? text.slice(0, 500) : text;
 }
@@ -69,6 +89,7 @@ export default function LastWordsClient(props: {
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingThreshold, setIsSavingThreshold] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isSendingTest, setIsSendingTest] = useState(false);
 
   const charCount = message.length;
 
@@ -173,6 +194,25 @@ export default function LastWordsClient(props: {
     }
   }
 
+  async function onSendTest() {
+    setError(null);
+    setInfo(null);
+    setIsSendingTest(true);
+    try {
+      const { sent, failed, results } = await sendTestLastWords();
+      if (failed > 0 && results?.length) {
+        const failedItems = results.filter((r) => !r.ok);
+        const first = failedItems[0];
+        setError(first?.error ? `${first.email}: ${first.error}` : "Some emails failed to send.");
+      }
+      setInfo(`Test email sent. Success: ${sent}, Failed: ${failed}.`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to send test email");
+    } finally {
+      setIsSendingTest(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 px-6 py-10 text-gray-900">
       <div className="mx-auto flex w-full max-w-[800px] flex-col gap-8 p-8">
@@ -220,14 +260,25 @@ export default function LastWordsClient(props: {
           />
 
           <div className="mt-4 flex items-center justify-between gap-3">
-            <button
-              type="button"
-              onClick={onSave}
-              disabled={isSaving}
-              className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 disabled:opacity-70"
-            >
-              {isSaving ? "Saving..." : "Save My Words"}
-            </button>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={onSave}
+                disabled={isSaving}
+                className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 disabled:opacity-70"
+              >
+                {isSaving ? "Saving..." : "Save My Words"}
+              </button>
+
+              <button
+                type="button"
+                onClick={onSendTest}
+                disabled={isSendingTest || !message.trim()}
+                className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-70"
+              >
+                {isSendingTest ? "Sending..." : "Send Test Email"}
+              </button>
+            </div>
 
             <button
               type="button"

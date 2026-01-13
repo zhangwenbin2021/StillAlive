@@ -1,11 +1,26 @@
 import { prisma } from "@/lib/prisma";
-import { sendEmail, sendSms } from "@/lib/notify";
+import { sendEmail } from "@/lib/notify";
 
-const ALERT_TYPE_EMERGENCY_SMS = "EMERGENCY_SMS";
+const ALERT_TYPE_EMERGENCY_EMAIL = "EMERGENCY_EMAIL";
 const ALERT_TYPE_LAST_WORDS_EMAIL = "LAST_WORDS_EMAIL";
 const ALLOWED_THRESHOLDS = new Set([12, 24, 36, 48]);
 const LAST_WORDS_THRESHOLDS = new Set([36, 48, 72]);
 
+function fmtDateTimeClean(date: Date) {
+  const datePart = new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+  }).format(date);
+  const timePart = new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).format(date);
+  return `${datePart} - ${timePart}`;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function fmtDateTime(date: Date) {
   const datePart = new Intl.DateTimeFormat("en-US", {
     month: "short",
@@ -96,15 +111,25 @@ export async function runMiaAlertSweep() {
     if (!needsEmergency) continue;
 
     const contacts = await prisma.emergencyContact.findMany({
-      where: { userId: user.userId, isConfirmed: true },
-      select: { id: true, phone: true },
+      where: { userId: user.userId },
+      select: { id: true, email: true },
     });
     if (contacts.length === 0) continue;
 
     const hours = threshold;
     const userName = user.name || "Your friend";
-    const lastCheckIn = fmtDateTime(last.checkInTime);
-    const emergencyBody = `[Still Alive?] Emergency Alert! Your friend ${userName} hasn’t proven they’re alive in ${hours} hours! They might be: 1) Trapped in bed, 2) Phone dead, 3) Obsessed with work/games, 4) Actually in trouble (we hope not). If you can reach them, tell them to check in on Still Alive! If not, take further action (call/visit). Last check-in: ${lastCheckIn} (Note: We only store Google auth data).`;
+    const lastCheckIn = fmtDateTimeClean(last.checkInTime);
+
+    const subject = `[Still Alive?] Emergency Alert: ${userName} may be MIA`;
+    const emergencyBody =
+      `You’re receiving this because ${userName} added you as an emergency contact on Still Alive?.\n\n` +
+      `${userName} hasn’t checked in for ${hours} hours.\n` +
+      `Last check-in: ${lastCheckIn}\n\n` +
+      `Recommended actions:\n` +
+      `1) Try calling/texting them.\n` +
+      `2) If you can, check on them in person.\n` +
+      `3) If you believe this is an emergency, contact local emergency services.\n\n` +
+      `If they’re fine, remind them to check in here: ${baseUrl}/dashboard\n`;
 
     let allOk = true;
     for (const c of contacts) {
@@ -113,27 +138,27 @@ export async function runMiaAlertSweep() {
           checkInId_contactId_type: {
             checkInId: last.id,
             contactId: c.id,
-            type: ALERT_TYPE_EMERGENCY_SMS,
+            type: ALERT_TYPE_EMERGENCY_EMAIL,
           },
         },
         select: { ok: true },
       });
       if (existing?.ok) continue;
 
-      const res = await sendSms(c.phone, emergencyBody);
+      const res = await sendEmail(c.email, subject, emergencyBody);
       await prisma.alertDelivery.upsert({
         where: {
           checkInId_contactId_type: {
             checkInId: last.id,
             contactId: c.id,
-            type: ALERT_TYPE_EMERGENCY_SMS,
+            type: ALERT_TYPE_EMERGENCY_EMAIL,
           },
         },
         create: {
           userId: user.userId,
           checkInId: last.id,
           contactId: c.id,
-          type: ALERT_TYPE_EMERGENCY_SMS,
+          type: ALERT_TYPE_EMERGENCY_EMAIL,
           ok: res.ok,
           error: res.ok ? null : res.error,
         },

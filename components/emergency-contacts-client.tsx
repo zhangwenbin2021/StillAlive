@@ -1,63 +1,45 @@
 "use client";
 
-import { maskPhone } from "@/lib/phone";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
 type Contact = {
   id: string;
   name: string;
-  phone: string;
-  isConfirmed: boolean;
+  email: string;
 };
 
-const E164_HELP = "Please enter a valid phone number (E.164 format)";
+const EMAIL_HELP = "Please enter a valid email address.";
 
-function CheckIcon(props: { className?: string }) {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={props.className}
-    >
-      <path d="M20 6 9 17l-5-5" />
-    </svg>
-  );
+function isValidEmail(email: string) {
+  if (email.length > 320) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-function isE164(phone: string) {
-  return /^\+[1-9]\d{1,14}$/.test(phone);
-}
-
-async function addContact(name: string, phone: string) {
+async function addContact(name: string, email: string) {
   const res = await fetch("/api/emergency-contacts", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ name, phone }),
+    body: JSON.stringify({ name, email }),
   });
   const data = (await res.json().catch(() => null)) as
-    | { error?: string; contact?: Contact; smsSent?: boolean }
+    | { error?: string; contact?: Contact }
     | null;
   if (!res.ok) throw new Error(data?.error || "Failed to add contact");
-  return data as { contact: Contact; smsSent: boolean };
+  return data as { contact: Contact };
 }
 
-async function updateContact(id: string, name: string, phone: string) {
+async function updateContact(id: string, name: string, email: string) {
   const res = await fetch(`/api/emergency-contacts/${id}`, {
     method: "PATCH",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ name, phone }),
+    body: JSON.stringify({ name, email }),
   });
   const data = (await res.json().catch(() => null)) as
-    | { error?: string; contact?: Contact; smsSent?: boolean | null }
+    | { error?: string; contact?: Contact }
     | null;
   if (!res.ok) throw new Error(data?.error || "Failed to update contact");
-  return data as { contact: Contact; smsSent: boolean | null };
+  return data as { contact: Contact };
 }
 
 async function deleteContact(id: string) {
@@ -79,6 +61,19 @@ async function saveThreshold(miaThresholdHrs: number) {
   return data as { miaThresholdHrs: number };
 }
 
+async function sendTestAlert() {
+  const res = await fetch("/api/emergency-contacts/test-alert", { method: "POST" });
+  const data = (await res.json().catch(() => null)) as
+    | { error?: string; sent?: number; failed?: number; results?: Array<{ email: string; ok: boolean; error: string | null }> }
+    | null;
+  if (!res.ok) throw new Error(data?.error || "Failed to send test alert");
+  return data as {
+    sent: number;
+    failed: number;
+    results?: Array<{ email: string; ok: boolean; error: string | null }>;
+  };
+}
+
 export default function EmergencyContactsClient(props: {
   initialContacts: Contact[];
   initialThreshold: number;
@@ -87,7 +82,7 @@ export default function EmergencyContactsClient(props: {
   const [threshold, setThreshold] = useState<number>(props.initialThreshold);
 
   const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -98,32 +93,33 @@ export default function EmergencyContactsClient(props: {
     [contacts, editingId],
   );
   const [editName, setEditName] = useState("");
-  const [editPhone, setEditPhone] = useState("");
+  const [editEmail, setEditEmail] = useState("");
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   const [isSavingThreshold, setIsSavingThreshold] = useState(false);
+  const [isSendingTest, setIsSendingTest] = useState(false);
 
   function startEdit(c: Contact) {
     setInfo(null);
     setError(null);
     setEditingId(c.id);
     setEditName(c.name);
-    setEditPhone(c.phone);
+    setEditEmail(c.email);
   }
 
   function cancelEdit() {
     setEditingId(null);
     setEditName("");
-    setEditPhone("");
+    setEditEmail("");
   }
 
   async function onAdd() {
     setError(null);
     setInfo(null);
     const trimmedName = name.trim();
-    const trimmedPhone = phone.trim();
-    if (!trimmedName || !trimmedPhone || !isE164(trimmedPhone)) {
-      setError(E164_HELP);
+    const trimmedEmail = email.trim().toLowerCase();
+    if (!trimmedName || !trimmedEmail || !isValidEmail(trimmedEmail)) {
+      setError(EMAIL_HELP);
       return;
     }
     if (contacts.length >= 3) {
@@ -133,15 +129,11 @@ export default function EmergencyContactsClient(props: {
 
     setIsSubmitting(true);
     try {
-      const { contact, smsSent } = await addContact(trimmedName, trimmedPhone);
+      const { contact } = await addContact(trimmedName, trimmedEmail);
       setContacts((prev) => [...prev, contact].slice(0, 3));
       setName("");
-      setPhone("");
-      setInfo(
-        smsSent
-          ? "Confirmation SMS sent."
-          : "Contact added, but SMS failed to send. Check Twilio config.",
-      );
+      setEmail("");
+      setInfo("Contact added.");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to add contact");
     } finally {
@@ -155,24 +147,22 @@ export default function EmergencyContactsClient(props: {
     setInfo(null);
 
     const trimmedName = editName.trim();
-    const trimmedPhone = editPhone.trim();
-    if (!trimmedName || !trimmedPhone || !isE164(trimmedPhone)) {
-      setError(E164_HELP);
+    const trimmedEmail = editEmail.trim().toLowerCase();
+    if (!trimmedName || !trimmedEmail || !isValidEmail(trimmedEmail)) {
+      setError(EMAIL_HELP);
       return;
     }
 
     setIsSavingEdit(true);
     try {
-      const { contact, smsSent } = await updateContact(
+      const { contact } = await updateContact(
         editing.id,
         trimmedName,
-        trimmedPhone,
+        trimmedEmail,
       );
       setContacts((prev) => prev.map((c) => (c.id === contact.id ? contact : c)));
       setEditingId(null);
-      if (smsSent === true) setInfo("Updated. Confirmation SMS sent.");
-      else if (smsSent === false) setInfo("Updated, but SMS failed to send.");
-      else setInfo("Updated.");
+      setInfo("Updated.");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to update contact");
     } finally {
@@ -207,6 +197,25 @@ export default function EmergencyContactsClient(props: {
     }
   }
 
+  async function onSendTest() {
+    setError(null);
+    setInfo(null);
+    setIsSendingTest(true);
+    try {
+      const { sent, failed, results } = await sendTestAlert();
+      if (failed > 0 && results?.length) {
+        const failedItems = results.filter((r) => !r.ok);
+        const first = failedItems[0];
+        setError(first?.error ? `${first.email}: ${first.error}` : "Some emails failed to send.");
+      }
+      setInfo(`Test alert sent. Success: ${sent}, Failed: ${failed}.`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to send test alert");
+    } finally {
+      setIsSendingTest(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 px-6 py-10 text-gray-900">
       <div className="mx-auto flex w-full max-w-[800px] flex-col gap-8">
@@ -238,11 +247,11 @@ export default function EmergencyContactsClient(props: {
               />
             </div>
             <div className="sm:col-span-1">
-              <label className="text-xs text-gray-600">Phone Number (E.164)</label>
+              <label className="text-xs text-gray-600">Email</label>
               <input
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="+1234567890"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="friend@example.com"
                 className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-orange-300"
               />
             </div>
@@ -261,6 +270,20 @@ export default function EmergencyContactsClient(props: {
           {error ? <div className="mt-3 text-sm text-red-600">{error}</div> : null}
           {info ? <div className="mt-3 text-sm text-gray-600">{info}</div> : null}
           <div className="mt-3 text-xs text-gray-400">MVP limit: 3 contacts</div>
+
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={onSendTest}
+              disabled={isSendingTest || contacts.length === 0}
+              className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-70"
+            >
+              {isSendingTest ? "Sending..." : "Send Test Email"}
+            </button>
+            <div className="text-xs text-gray-500">
+              Sends a one-time test email to your emergency contacts.
+            </div>
+          </div>
         </section>
 
         <section className="flex flex-col gap-3">
@@ -285,10 +308,10 @@ export default function EmergencyContactsClient(props: {
                         />
                       </div>
                       <div>
-                        <label className="text-xs text-gray-600">Phone (E.164)</label>
+                        <label className="text-xs text-gray-600">Email</label>
                         <input
-                          value={editPhone}
-                          onChange={(e) => setEditPhone(e.target.value)}
+                          value={editEmail}
+                          onChange={(e) => setEditEmail(e.target.value)}
                           className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-orange-300"
                         />
                       </div>
@@ -317,24 +340,7 @@ export default function EmergencyContactsClient(props: {
                           {c.name}
                         </div>
                         <div className="mt-1 text-sm text-gray-600">
-                          {maskPhone(c.phone)}
-                        </div>
-                        <div className="mt-2 text-sm">
-                          {c.isConfirmed ? (
-                            <div className="flex items-center gap-2 text-green-600">
-                              <CheckIcon className="h-4 w-4" />
-                              <span className="font-medium">Confirmed</span>
-                            </div>
-                          ) : (
-                            <div>
-                              <div className="font-medium text-yellow-600">
-                                Pending
-                              </div>
-                              <div className="mt-1 text-sm text-yellow-500">
-                                A confirmation SMS has been sent to this number
-                              </div>
-                            </div>
-                          )}
+                          {c.email}
                         </div>
                       </div>
                       <div className="flex gap-4">
