@@ -12,6 +12,6 @@ export function formatCheckInTime(dateInput: string | Date) {
     hour12: true,
   }).format(date);
 
-  return `${datePart} • ${timePart}`;
+  return `${datePart} - ${timePart}`;
 }
 

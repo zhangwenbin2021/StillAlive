@@ -3,10 +3,11 @@ import { sendEmail } from "@/lib/notify";
 
 const ALERT_TYPE_EMERGENCY_EMAIL = "EMERGENCY_EMAIL";
 const ALERT_TYPE_LAST_WORDS_EMAIL = "LAST_WORDS_EMAIL";
+
 const ALLOWED_THRESHOLDS = new Set([12, 24, 36, 48]);
 const LAST_WORDS_THRESHOLDS = new Set([36, 48, 72]);
 
-function fmtDateTimeClean(date: Date) {
+function fmtDateTime(date: Date) {
   const datePart = new Intl.DateTimeFormat("en-US", {
     month: "short",
     day: "2-digit",
@@ -20,26 +21,9 @@ function fmtDateTimeClean(date: Date) {
   return `${datePart} - ${timePart}`;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function fmtDateTime(date: Date) {
-  const datePart = new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "2-digit",
-    year: "numeric",
-  }).format(date);
-  const timePart = new Intl.DateTimeFormat("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  }).format(date);
-  return `${datePart} • ${timePart}`;
-}
-
 export async function runMiaAlertSweep() {
   const baseUrl =
-    process.env.APP_BASE_URL ||
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    "http://localhost:3000";
+    process.env.APP_BASE_URL || process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
   const users = await prisma.userProfile.findMany({
     select: { userId: true, name: true, email: true },
@@ -60,10 +44,13 @@ export async function runMiaAlertSweep() {
       const end = settings.emergencyModeEndTime;
       if (end && end.getTime() > Date.now()) continue;
 
-      // Auto-disable if expired.
       await prisma.userSettings.update({
         where: { userId: user.userId },
-        data: { emergencyModeEnabled: false, emergencyModeEndTime: null, emergencyModeMultiplier: 2 },
+        data: {
+          emergencyModeEnabled: false,
+          emergencyModeEndTime: null,
+          emergencyModeMultiplier: 2,
+        },
       });
     }
 
@@ -88,13 +75,14 @@ export async function runMiaAlertSweep() {
     });
 
     const needsPreAlert =
-      now >= preAlertAt &&
-      now < alertAt &&
-      state?.preAlertForCheckInId !== last.id;
+      now >= preAlertAt && now < alertAt && state?.preAlertForCheckInId !== last.id;
 
     if (needsPreAlert) {
-      const subject = "Wake Up! You’re About to Be Marked as MIA!";
-      const text = `Hey! You have 1 hour left to check in on Still Alive? to avoid alerting your contacts. Click here to check in: ${baseUrl}/dashboard`;
+      const subject = "Wake up! You're about to be marked as MIA!";
+      const text =
+        `Hey! You have 1 hour left to check in on Still Alive? to avoid alerting your contacts.\n\n` +
+        `Check in here: ${baseUrl}/dashboard\n`;
+
       const res = await sendEmail(user.email, subject, text);
       if (res.ok) {
         await prisma.miaNotification.upsert({
@@ -105,9 +93,7 @@ export async function runMiaAlertSweep() {
       }
     }
 
-    const needsEmergency =
-      now >= alertAt && state?.emergencyForCheckInId !== last.id;
-
+    const needsEmergency = now >= alertAt && state?.emergencyForCheckInId !== last.id;
     if (!needsEmergency) continue;
 
     const contacts = await prisma.emergencyContact.findMany({
@@ -116,20 +102,19 @@ export async function runMiaAlertSweep() {
     });
     if (contacts.length === 0) continue;
 
-    const hours = threshold;
     const userName = user.name || "Your friend";
-    const lastCheckIn = fmtDateTimeClean(last.checkInTime);
+    const lastCheckIn = fmtDateTime(last.checkInTime);
 
     const subject = `[Still Alive?] Emergency Alert: ${userName} may be MIA`;
-    const emergencyBody =
-      `You’re receiving this because ${userName} added you as an emergency contact on Still Alive?.\n\n` +
-      `${userName} hasn’t checked in for ${hours} hours.\n` +
+    const body =
+      `You're receiving this because ${userName} added you as an emergency contact on Still Alive?.\n\n` +
+      `${userName} hasn't checked in for ${threshold} hours.\n` +
       `Last check-in: ${lastCheckIn}\n\n` +
-      `Recommended actions:\n` +
+      `Suggested actions:\n` +
       `1) Try calling/texting them.\n` +
       `2) If you can, check on them in person.\n` +
       `3) If you believe this is an emergency, contact local emergency services.\n\n` +
-      `If they’re fine, remind them to check in here: ${baseUrl}/dashboard\n`;
+      `If they're fine, remind them to check in here: ${baseUrl}/dashboard\n`;
 
     let allOk = true;
     for (const c of contacts) {
@@ -145,7 +130,7 @@ export async function runMiaAlertSweep() {
       });
       if (existing?.ok) continue;
 
-      const res = await sendEmail(c.email, subject, emergencyBody);
+      const res = await sendEmail(c.email, subject, body);
       await prisma.alertDelivery.upsert({
         where: {
           checkInId_contactId_type: {
@@ -192,18 +177,18 @@ export async function runMiaAlertSweep() {
     });
     if (!lw?.message) continue;
 
-    const lwThreshold = LAST_WORDS_THRESHOLDS.has(lw.deliveryThreshold)
-      ? lw.deliveryThreshold
-      : 48;
+    const lwThreshold = LAST_WORDS_THRESHOLDS.has(lw.deliveryThreshold) ? lw.deliveryThreshold : 48;
     const lwAt = new Date(last.checkInTime.getTime() + lwThreshold * 60 * 60 * 1000);
     if (now < lwAt) continue;
 
-    const messageText = lw.message;
+    const subject2 = `Last Message from ${user.name || "User"} (Maybe -- Or They Just Forgot to Check In)`;
+    const body2 =
+      `This is a pre-written message from ${user.name || "User"} on Still Alive?.\n\n` +
+      `It's being sent because they haven't checked in for ${lwThreshold} hours.\n\n` +
+      `Their message:\n\n${lw.message}\n\n` +
+      `-- Sent automatically by Still Alive?\n`;
 
-    const subject = `Last Message from ${user.name || "User"} (Maybe—Or They Just Forgot to Check In)`;
-    const lastWordsBody = `Don’t panic! This is a pre-written message from ${user.name || "User"} on Still Alive?. It’s sent because they haven’t checked in for ${lwThreshold} hours. If they’re alive, tell them to check in ASAP to stop scaring us! Here’s their message:\n\n${messageText}\n\n— Sent automatically by Still Alive? (We don’t store any user data except Google auth info. Reply to this email for support.)`;
-
-    const emailRes = await sendEmail(user.email, subject, lastWordsBody);
+    const emailRes = await sendEmail(user.email, subject2, body2);
     await prisma.alertDelivery.upsert({
       where: {
         checkInId_contactId_type: {
@@ -235,3 +220,4 @@ export async function runMiaAlertSweep() {
     }
   }
 }
+

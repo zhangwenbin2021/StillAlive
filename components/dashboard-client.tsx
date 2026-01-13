@@ -13,41 +13,41 @@ type RecentCheckIn = {
 };
 
 const BUTTON_TEXTS = [
-  "I’m Alive!",
+  "I'm Alive!",
   "Not Dead Yet!",
-  "Don’t Call 911—I’m Slacking!",
-  "Can Keep Grinding for 500 Years!",
-  "Didn’t Let Life Beat Me Today～",
-  "Being Alive Is Great—Check In Again!",
+  "Don't call 911 - I'm just lazy.",
+  "Still breathing. Allegedly.",
+  "Survived another day of nonsense.",
+  "Alive-ish. Good enough.",
 ] as const;
 
 const SUCCESS_TEXTS = [
-  (part: string) => `Yay! You’ve survived this ${part}!`,
-  () => "Check-in successful! Loved ones’ peace of mind +10!",
-  () => "Congrats! No funeral planning needed (yet)!",
-  () => "Survival KPI completed! Reward yourself with a milk tea!",
+  (part: string) => `Nice. You survived this ${part}.`,
+  () => "Check-in successful. Funeral plans: canceled (for now).",
+  () => "Status: alive. Drama level: reduced.",
+  () => "Survival KPI completed. Reward: dopamine.",
 ] as const;
 
 const BADGES = [
   {
     threshold: 7,
     name: "Tenacious Vitality",
-    color: "text-green-600",
+    color: "text-green-700",
     bg: "bg-green-100",
     icon: LeafIcon,
   },
   {
     threshold: 30,
     name: "Survival Master",
-    color: "text-yellow-700",
+    color: "text-yellow-800",
     bg: "bg-yellow-100",
     icon: CrownIcon,
   },
   {
     threshold: 100,
     name: "Human Lifer",
-    color: "text-gray-900",
-    bg: "bg-gray-200",
+    color: "text-slate-900",
+    bg: "bg-slate-200",
     icon: NailIcon,
   },
 ] as const;
@@ -140,7 +140,6 @@ function NailIcon(props: { className?: string }) {
 
 function ParticleBurst(props: { burstKey: number }) {
   const particles = useMemo(() => {
-    // Re-generate particles per burst.
     void props.burstKey;
     const colors = ["#f97316", "#fb7185", "#22c55e", "#3b82f6", "#eab308"];
     return Array.from({ length: 18 }).map((_, i) => {
@@ -182,14 +181,11 @@ async function postCheckIn() {
     const data = (await res.json().catch(() => null)) as { error?: string } | null;
     throw new Error(data?.error || "Check-in failed");
   }
-  return (await res.json()) as {
-    currentStreak: number;
-    recent: RecentCheckIn[];
-  };
+  return (await res.json()) as { currentStreak: number; recent: RecentCheckIn[] };
 }
 
 function buildShareText(streak: number, badgeName: string) {
-  return `I’ve checked in for ${streak} consecutive days on Still Alive? and earned the ${badgeName} title! Join me to prove you’re not MIA～`;
+  return `I've checked in for ${streak} consecutive days on Still Alive? and earned the ${badgeName} title. Join me so your friends don't file a missing-person report.`;
 }
 
 function ShareStreakButton(props: { streak: number; badgeName: string }) {
@@ -217,11 +213,7 @@ function ShareStreakButton(props: { streak: number; badgeName: string }) {
   }
 
   return (
-    <button
-      type="button"
-      onClick={onShare}
-      className="inline-flex items-center gap-2 rounded-md px-2 py-1 text-sm font-medium text-gray-700 hover:bg-gray-100"
-    >
+    <button type="button" onClick={onShare} className="sa-btn sa-btn-soft inline-flex items-center gap-2">
       <ShareIcon className="h-4 w-4" />
       <span>{isSharing ? "Sharing..." : "Share Streak"}</span>
     </button>
@@ -245,11 +237,7 @@ export default function DashboardClient(props: {
     };
   }, []);
 
-  // Avoid SSR/client hydration mismatch by choosing random text after hydration.
-  const [buttonText, setButtonText] = useState<(typeof BUTTON_TEXTS)[number]>(
-    BUTTON_TEXTS[0],
-  );
-
+  const [buttonText, setButtonText] = useState<(typeof BUTTON_TEXTS)[number]>(BUTTON_TEXTS[0]);
   useEffect(() => {
     setButtonText(randomFrom(BUTTON_TEXTS));
   }, []);
@@ -264,48 +252,58 @@ export default function DashboardClient(props: {
     const successMessage = randomFrom(SUCCESS_TEXTS)(dayPart());
     setToast(successMessage);
     if (toastTimer.current) window.clearTimeout(toastTimer.current);
-    toastTimer.current = window.setTimeout(() => setToast(null), 3000);
+    toastTimer.current = window.setTimeout(() => setToast(null), 3200);
 
     try {
       const data = await postCheckIn();
       setCurrentStreak(data.currentStreak);
       setRecent(data.recent);
+      setButtonText(randomFrom(BUTTON_TEXTS));
     } catch (e) {
       setToast(e instanceof Error ? e.message : "Check-in failed");
       if (toastTimer.current) window.clearTimeout(toastTimer.current);
-      toastTimer.current = window.setTimeout(() => setToast(null), 3000);
+      toastTimer.current = window.setTimeout(() => setToast(null), 3500);
     } finally {
       setIsCheckingIn(false);
     }
   }
 
-  const unlockedBadges = BADGES.map((b) => ({
-    ...b,
-    unlocked: currentStreak >= b.threshold,
-  }));
+  const unlockedBadges = BADGES.map((b) => ({ ...b, unlocked: currentStreak >= b.threshold }));
 
   return (
-    <div className="min-h-screen bg-gray-50 px-6 py-10 text-gray-900">
+    <div className="sa-page">
       <WelcomePopup />
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-8">
-        <header className="flex items-center justify-between">
-          <h1 className="text-lg font-semibold text-gray-800 sm:text-2xl">
-            Survival Check-In
-          </h1>
-          <div className="flex items-center gap-4">
-            <Link
-              href="/dashboard/emergency-contacts"
-              className="text-sm text-gray-600 hover:underline"
-            >
-              Emergency Contacts
-            </Link>
-            <Link href="/dashboard/last-words" className="text-sm text-gray-600 hover:underline">
-              Silly Last Words
-            </Link>
-            <Link href="/dashboard/settings" className="text-sm text-gray-600 hover:underline">
-              Settings
-            </Link>
-            <LogoutButton />
+
+      {toast ? (
+        <div className="fixed inset-x-0 top-4 z-40 flex justify-center px-4">
+          <div className="sa-toast w-full max-w-md p-4 text-sm">{toast}</div>
+        </div>
+      ) : null}
+
+      <div className="mx-auto flex w-full max-w-4xl flex-col gap-8">
+        <header className="sa-card px-5 py-4 sm:px-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h1 className="text-lg font-semibold text-[color:var(--sa-fg)] sm:text-2xl">
+                Survival Check-In
+              </h1>
+              <p className="mt-1 text-sm text-[color:var(--sa-muted)]">
+                Press the button. Reduce chaos. Continue being alive.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Link href="/dashboard/emergency-contacts" className="sa-btn sa-btn-soft">
+                Emergency Contacts
+              </Link>
+              <Link href="/dashboard/last-words" className="sa-btn sa-btn-soft">
+                Silly Last Words
+              </Link>
+              <Link href="/dashboard/settings" className="sa-btn sa-btn-soft">
+                Settings
+              </Link>
+              <LogoutButton />
+            </div>
           </div>
         </header>
 
@@ -315,28 +313,23 @@ export default function DashboardClient(props: {
               type="button"
               onClick={onCheckIn}
               disabled={isCheckingIn}
-              className="relative aspect-square w-[50vw] min-w-48 max-w-64 rounded-full border-4 border-orange-600 bg-[#f97316] px-6 text-base font-semibold text-white shadow-md transition-transform hover:scale-105 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-80 sm:w-[33vw]"
+              className="relative aspect-square w-[56vw] min-w-52 max-w-72 rounded-full border-[6px] border-orange-500/70 bg-gradient-to-b from-orange-400 to-orange-600 px-6 text-base font-extrabold text-white shadow-[0_18px_45px_rgba(15,23,42,0.16)] transition-transform hover:scale-[1.03] disabled:cursor-not-allowed disabled:opacity-80 sm:w-[320px]"
             >
-              <span className="relative z-10">
-                {isCheckingIn ? "Checking in..." : buttonText}
+              <span className="relative z-10">{isCheckingIn ? "Checking in..." : buttonText}</span>
+              <span className="relative z-10 mt-2 block text-xs font-semibold text-white/90">
+                (tap to calm the group chat)
               </span>
               {burstKey > 0 ? <ParticleBurst burstKey={burstKey} /> : null}
             </button>
           </div>
 
-          {toast ? (
-            <div className="w-full max-w-md rounded-lg bg-white p-6 text-center shadow-md ring-1 ring-black/5">
-              <div className="text-sm font-medium text-gray-900">{toast}</div>
-            </div>
-          ) : null}
-
-          <section className="w-full">
-            <h2 className="text-base font-medium text-gray-700 sm:text-lg">
+          <section className="sa-card w-full p-6">
+            <h2 className="text-base font-semibold text-[color:var(--sa-fg)] sm:text-lg">
               Recent Check-Ins
             </h2>
-            <ul className="mt-3 space-y-2 text-gray-600">
+            <ul className="mt-3 space-y-2 text-[color:var(--sa-muted)]">
               {recent.length === 0 ? (
-                <li className="text-sm text-gray-500">No check-ins yet.</li>
+                <li className="text-sm text-[color:var(--sa-muted-2)]">No check-ins yet. Bold.</li>
               ) : (
                 recent.map((r) => (
                   <li key={r.id} className="text-sm">
@@ -347,11 +340,11 @@ export default function DashboardClient(props: {
             </ul>
           </section>
 
-          <section className="w-full">
-            <h2 className="text-base font-medium text-gray-700 sm:text-lg">
+          <section className="sa-card w-full p-6">
+            <h2 className="text-base font-semibold text-[color:var(--sa-fg)] sm:text-lg">
               Survival Streak
             </h2>
-            <div className="mt-2 text-lg font-bold text-orange-500 sm:text-xl">
+            <div className="mt-2 text-lg font-extrabold text-[color:var(--sa-accent)] sm:text-xl">
               Current Streak: {currentStreak} Days
             </div>
 
@@ -361,34 +354,25 @@ export default function DashboardClient(props: {
                 return (
                   <div
                     key={b.name}
-                    className={`flex items-center justify-between rounded-md px-2 py-1 ${
+                    className={`flex items-center justify-between rounded-xl px-2 py-2 ${
                       b.unlocked ? "" : "opacity-40"
                     }`}
                   >
                     <div className="flex items-center gap-3">
                       <div
-                        className={`flex h-8 w-8 items-center justify-center rounded-full ${
-                          b.unlocked ? b.bg : "bg-gray-100"
+                        className={`flex h-9 w-9 items-center justify-center rounded-full ${
+                          b.unlocked ? b.bg : "bg-white/60"
                         }`}
                       >
-                        <Icon
-                          className={`h-4 w-4 ${
-                            b.unlocked ? b.color : "text-gray-400"
-                          }`}
-                        />
+                        <Icon className={`h-4 w-4 ${b.unlocked ? b.color : "text-slate-400"}`} />
                       </div>
-                      <div className="text-sm font-medium text-gray-700">
-                        {b.name}
-                      </div>
+                      <div className="text-sm font-semibold text-[color:var(--sa-fg)]">{b.name}</div>
                     </div>
 
                     {b.unlocked ? (
-                      <ShareStreakButton
-                        streak={currentStreak}
-                        badgeName={b.name}
-                      />
+                      <ShareStreakButton streak={currentStreak} badgeName={b.name} />
                     ) : (
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-[color:var(--sa-muted-2)]">
                         Unlock at {b.threshold} days
                       </div>
                     )}
@@ -402,6 +386,7 @@ export default function DashboardClient(props: {
     </div>
   );
 }
+
 const WelcomePopup = dynamic(() => import("@/components/welcome-popup"), {
   ssr: false,
 });

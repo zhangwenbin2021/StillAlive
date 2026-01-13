@@ -214,39 +214,39 @@ export default function LastWordsClient(props: {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 px-6 py-10 text-gray-900">
-      <div className="mx-auto flex w-full max-w-[800px] flex-col gap-8 p-8">
+    <div className="sa-page">
+      <div className="sa-shell">
         <header className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-800 sm:text-3xl">
+            <h1 className="text-2xl font-semibold text-[color:var(--sa-fg)] sm:text-3xl">
               Silly Last Words
             </h1>
-            <p className="mt-1 text-base text-gray-500">
-              A lighthearted message for your contacts (if you forget to check in)
-            </p>
+          <p className="mt-1 text-base text-[color:var(--sa-muted)]">
+              A pre-written message for your contacts (if you ghost everyone like it&apos;s a hobby).
+          </p>
           </div>
-          <Link href="/dashboard" className="text-sm text-orange-500 hover:underline">
+          <Link href="/dashboard" className="sa-link text-sm">
             Back
           </Link>
         </header>
 
-        <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-md">
+        <section className="sa-card sa-card-pad">
           <div className="flex items-center justify-between">
-            <div className="text-sm font-medium text-gray-700">Your Message</div>
-            <div className="text-xs text-gray-500">{charCount}/500</div>
+            <div className="text-sm font-medium text-[color:var(--sa-fg)]">Your Message</div>
+            <div className="text-xs text-[color:var(--sa-muted-2)]">{charCount}/500</div>
           </div>
 
           <div className="mt-3 flex items-center gap-3">
             <button
               type="button"
               onClick={onBold}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-gray-200 text-sm font-bold text-gray-700 hover:bg-gray-50"
+              className="sa-btn sa-btn-soft inline-flex h-9 w-9 items-center justify-center p-0 text-sm font-bold"
               aria-label="Bold"
               title="Bold"
             >
               B
             </button>
-            <div className="text-xs text-gray-500">
+            <div className="text-xs text-[color:var(--sa-muted-2)]">
               Bold uses <span className="font-mono">**text**</span>
             </div>
           </div>
@@ -256,7 +256,7 @@ export default function LastWordsClient(props: {
             value={message}
             onChange={(e) => setMessage(clamp500(e.target.value))}
             placeholder={PLACEHOLDER}
-            className="mt-4 h-32 w-full resize-none rounded-lg border border-gray-300 p-4 text-sm outline-none focus:border-orange-300 sm:h-40"
+            className="sa-input mt-4 h-32 resize-none p-4 sm:h-40"
           />
 
           <div className="mt-4 flex items-center justify-between gap-3">
@@ -265,7 +265,7 @@ export default function LastWordsClient(props: {
                 type="button"
                 onClick={onSave}
                 disabled={isSaving}
-                className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 disabled:opacity-70"
+                className="sa-btn sa-btn-primary"
               >
                 {isSaving ? "Saving..." : "Save My Words"}
               </button>
@@ -274,7 +274,7 @@ export default function LastWordsClient(props: {
                 type="button"
                 onClick={onSendTest}
                 disabled={isSendingTest || !message.trim()}
-                className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-70"
+                className="sa-btn sa-btn-ink"
               >
                 {isSendingTest ? "Sending..." : "Send Test Email"}
               </button>
@@ -284,29 +284,29 @@ export default function LastWordsClient(props: {
               type="button"
               onClick={onDelete}
               disabled={isDeleting || (!hasSavedMessage && !message.trim())}
-              className="text-sm font-medium text-red-500 hover:underline disabled:opacity-50"
+              className="text-sm font-medium text-red-600 hover:underline disabled:opacity-50"
             >
               {isDeleting ? "Deleting..." : "Delete"}
             </button>
           </div>
 
           {error ? <div className="mt-3 text-sm text-red-600">{error}</div> : null}
-          {info ? <div className="mt-3 text-sm text-gray-600">{info}</div> : null}
+          {info ? <div className="mt-3 text-sm text-[color:var(--sa-muted)]">{info}</div> : null}
         </section>
 
-        <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-md">
-          <h2 className="text-base font-medium text-gray-700 sm:text-lg">
+        <section className="sa-card sa-card-pad">
+          <h2 className="text-base font-medium text-[color:var(--sa-fg)] sm:text-lg">
             When to Send This Message
           </h2>
-          <p className="mt-1 text-sm text-gray-600">
-            Only send if you miss check-ins past this deadline (after emergency SMS).
+          <p className="mt-1 text-sm text-[color:var(--sa-muted)]">
+            Sent after your emergency email has already gone out. (A.k.a. the &quot;okay now we worry&quot; stage.)
           </p>
 
           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
             {THRESHOLDS.map((h) => (
               <label
                 key={h}
-                className="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm"
+                className="flex cursor-pointer items-center gap-2 rounded-lg border border-black/10 bg-white/70 px-3 py-2 text-sm"
               >
                 <input
                   type="radio"
@@ -324,7 +324,7 @@ export default function LastWordsClient(props: {
               type="button"
               onClick={onSaveThreshold}
               disabled={isSavingThreshold}
-              className="rounded-md bg-gray-100 px-3 py-2 text-sm hover:bg-gray-200 disabled:opacity-70"
+              className="sa-btn sa-btn-soft"
             >
               {isSavingThreshold ? "Saving..." : "Save Threshold"}
             </button>

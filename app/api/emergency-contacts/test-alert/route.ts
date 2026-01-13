@@ -72,7 +72,7 @@ export async function POST() {
     `Configured MIA threshold: ${threshold} hours\n` +
     `Last check-in: ${lastCheckInText}\n\n` +
     `Dashboard: ${baseUrl}/dashboard\n\n` +
-    `If this were real, you’d be receiving this because ${userName} hasn’t checked in for ${threshold} hours.\n`;
+    `If this were real, you'd be receiving this because ${userName} hasn't checked in for ${threshold} hours.\n`;
 
   const results = await Promise.all(
     contacts.map(async (c) => {
@@ -86,4 +86,3 @@ export async function POST() {
 
   return Response.json({ ok: true, sent, failed, results });
 }
-

@@ -27,7 +27,7 @@ export default function LogoutButton() {
       type="button"
       onClick={onClick}
       disabled={isLoading}
-      className="text-sm font-medium text-orange-500 hover:underline disabled:opacity-60"
+      className="sa-btn sa-btn-soft"
     >
       {isLoading ? "Logging out..." : "Logout"}
     </button>

@@ -217,42 +217,42 @@ export default function EmergencyContactsClient(props: {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 px-6 py-10 text-gray-900">
-      <div className="mx-auto flex w-full max-w-[800px] flex-col gap-8">
+    <div className="sa-page">
+      <div className="sa-shell">
         <header className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-800 sm:text-3xl">
+            <h1 className="text-2xl font-semibold text-[color:var(--sa-fg)] sm:text-3xl">
               Emergency Contacts
             </h1>
-            <p className="mt-1 text-base text-gray-500">
-              Who gets notified if you go MIA?
+            <p className="mt-1 text-base text-[color:var(--sa-muted)]">
+              Who do we email if you disappear like a magician?
             </p>
           </div>
-          <Link href="/dashboard" className="text-sm text-orange-500 hover:underline">
+          <Link href="/dashboard" className="sa-link text-sm">
             Back
           </Link>
         </header>
 
-        <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-md">
-          <div className="text-sm font-medium text-gray-700">Add Contact</div>
+        <section className="sa-card sa-card-pad">
+          <div className="text-sm font-medium text-[color:var(--sa-fg)]">Add Contact</div>
 
           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="sm:col-span-1">
-              <label className="text-xs text-gray-600">Name</label>
+              <label className="text-xs text-[color:var(--sa-muted)]">Name</label>
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Jane Doe"
-                className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-orange-300"
+                className="sa-input mt-1"
               />
             </div>
             <div className="sm:col-span-1">
-              <label className="text-xs text-gray-600">Email</label>
+              <label className="text-xs text-[color:var(--sa-muted)]">Email</label>
               <input
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="friend@example.com"
-                className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-orange-300"
+                className="sa-input mt-1"
               />
             </div>
             <div className="sm:col-span-1 sm:flex sm:items-end">
@@ -260,7 +260,7 @@ export default function EmergencyContactsClient(props: {
                 type="button"
                 onClick={onAdd}
                 disabled={isSubmitting}
-                className="w-full rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 disabled:opacity-70"
+                className="sa-btn sa-btn-primary w-full"
               >
                 {isSubmitting ? "Adding..." : "Add Contact"}
               </button>
@@ -268,51 +268,53 @@ export default function EmergencyContactsClient(props: {
           </div>
 
           {error ? <div className="mt-3 text-sm text-red-600">{error}</div> : null}
-          {info ? <div className="mt-3 text-sm text-gray-600">{info}</div> : null}
-          <div className="mt-3 text-xs text-gray-400">MVP limit: 3 contacts</div>
+          {info ? <div className="mt-3 text-sm text-[color:var(--sa-muted)]">{info}</div> : null}
+          <div className="mt-3 text-xs text-[color:var(--sa-muted-2)]">
+            MVP limit: 3 contacts (because chaos is expensive).
+          </div>
 
           <div className="mt-5 flex flex-wrap items-center gap-3">
             <button
               type="button"
               onClick={onSendTest}
               disabled={isSendingTest || contacts.length === 0}
-              className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-70"
+              className="sa-btn sa-btn-ink"
             >
               {isSendingTest ? "Sending..." : "Send Test Email"}
             </button>
-            <div className="text-xs text-gray-500">
-              Sends a one-time test email to your emergency contacts.
+            <div className="text-xs text-[color:var(--sa-muted-2)]">
+              Sends a one-time test email (no panic, just vibes).
             </div>
           </div>
         </section>
 
         <section className="flex flex-col gap-3">
-          <div className="text-sm font-medium text-gray-700">Contact List</div>
+          <div className="text-sm font-medium text-[color:var(--sa-fg)]">Contact List</div>
           {contacts.length === 0 ? (
-            <div className="text-sm text-gray-500">No contacts yet.</div>
+            <div className="text-sm text-[color:var(--sa-muted)]">No contacts yet.</div>
           ) : (
             <div className="grid grid-cols-1 gap-3">
               {contacts.map((c) => (
                 <div
                   key={c.id}
-                  className="rounded-xl border border-gray-200 bg-white p-5 shadow-md"
+                  className="sa-card p-5"
                 >
                   {editingId === c.id ? (
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                       <div>
-                        <label className="text-xs text-gray-600">Name</label>
+                        <label className="text-xs text-[color:var(--sa-muted)]">Name</label>
                         <input
                           value={editName}
                           onChange={(e) => setEditName(e.target.value)}
-                          className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-orange-300"
+                          className="sa-input mt-1"
                         />
                       </div>
                       <div>
-                        <label className="text-xs text-gray-600">Email</label>
+                        <label className="text-xs text-[color:var(--sa-muted)]">Email</label>
                         <input
                           value={editEmail}
                           onChange={(e) => setEditEmail(e.target.value)}
-                          className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-orange-300"
+                          className="sa-input mt-1"
                         />
                       </div>
                       <div className="flex items-end gap-3">
@@ -320,14 +322,14 @@ export default function EmergencyContactsClient(props: {
                           type="button"
                           onClick={onSaveEdit}
                           disabled={isSavingEdit}
-                          className="rounded-lg bg-gray-100 px-3 py-2 text-sm hover:bg-gray-200 disabled:opacity-70"
+                          className="sa-btn sa-btn-soft"
                         >
                           {isSavingEdit ? "Saving..." : "Save"}
                         </button>
                         <button
                           type="button"
                           onClick={cancelEdit}
-                          className="text-sm text-gray-500 hover:underline"
+                          className="text-sm text-[color:var(--sa-muted)] hover:underline"
                         >
                           Cancel
                         </button>
@@ -336,10 +338,10 @@ export default function EmergencyContactsClient(props: {
                   ) : (
                     <div className="flex items-start justify-between gap-4">
                       <div>
-                        <div className="text-sm font-semibold text-gray-900">
+                        <div className="text-sm font-semibold text-[color:var(--sa-fg)]">
                           {c.name}
                         </div>
-                        <div className="mt-1 text-sm text-gray-600">
+                        <div className="mt-1 text-sm text-[color:var(--sa-muted)]">
                           {c.email}
                         </div>
                       </div>
@@ -347,14 +349,14 @@ export default function EmergencyContactsClient(props: {
                         <button
                           type="button"
                           onClick={() => startEdit(c)}
-                          className="text-sm font-medium text-blue-500 hover:underline"
+                          className="text-sm font-medium text-[color:var(--sa-fg)] hover:underline"
                         >
                           Edit
                         </button>
                         <button
                           type="button"
                           onClick={() => onDelete(c.id)}
-                          className="text-sm font-medium text-red-500 hover:underline"
+                          className="text-sm font-medium text-red-600 hover:underline"
                         >
                           Delete
                         </button>
@@ -367,18 +369,17 @@ export default function EmergencyContactsClient(props: {
           )}
         </section>
 
-        <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-md">
-          <h2 className="text-base font-medium text-gray-700 sm:text-lg">MIA Threshold</h2>
-          <p className="mt-1 text-sm text-gray-600">
-            How long until we alert your contacts if you don’t check in?
+        <section className="sa-card sa-card-pad">
+          <h2 className="text-base font-medium text-[color:var(--sa-fg)] sm:text-lg">
+            MIA Threshold
+          </h2>
+          <p className="mt-1 text-sm text-[color:var(--sa-muted)]">
+            How long until we notify your contacts if you don&apos;t check in?
           </p>
 
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[12, 24, 36, 48].map((h) => (
-              <label
-                key={h}
-                className="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm"
-              >
+              <label key={h} className="flex cursor-pointer items-center gap-2 rounded-lg border border-black/10 bg-white/70 px-3 py-2 text-sm">
                 <input
                   type="radio"
                   name="threshold"
@@ -395,7 +396,7 @@ export default function EmergencyContactsClient(props: {
               type="button"
               onClick={onSaveThreshold}
               disabled={isSavingThreshold}
-              className="rounded-md bg-gray-100 px-3 py-2 text-sm hover:bg-gray-200 disabled:opacity-70"
+              className="sa-btn sa-btn-soft"
             >
               {isSavingThreshold ? "Saving..." : "Save Threshold"}
             </button>

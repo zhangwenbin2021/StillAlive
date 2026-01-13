@@ -7,7 +7,7 @@ function Spinner() {
   return (
     <svg
       aria-hidden="true"
-      className="h-5 w-5 animate-spin text-gray-700"
+      className="h-5 w-5 animate-spin text-[color:var(--sa-fg)]"
       viewBox="0 0 24 24"
       fill="none"
     >
@@ -86,7 +86,7 @@ export default function GoogleSignInButton() {
         type="button"
         onClick={onClick}
         disabled={isLoading}
-        className="group relative flex h-12 w-64 items-center justify-center rounded-md border border-gray-200 bg-white px-4 text-sm font-medium text-black shadow-sm transition-shadow hover:shadow-md disabled:cursor-not-allowed disabled:opacity-70"
+        className="sa-btn sa-btn-soft group relative flex h-12 w-64 items-center justify-center px-4 text-sm font-semibold text-[color:var(--sa-fg)] shadow-sm disabled:cursor-not-allowed"
       >
         <span className="absolute left-4 flex items-center">
           {isLoading ? <Spinner /> : <GoogleIcon />}

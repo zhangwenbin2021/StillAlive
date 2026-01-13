@@ -29,10 +29,7 @@ export async function POST() {
   });
   const message = (row?.message ?? "").trim();
   if (!message) {
-    return Response.json(
-      { error: "No last words message saved yet." },
-      { status: 400 },
-    );
+    return Response.json({ error: "No last words message saved yet." }, { status: 400 });
   }
 
   const contacts = await prisma.emergencyContact.findMany({
@@ -46,18 +43,16 @@ export async function POST() {
   }
 
   const baseUrl =
-    process.env.APP_BASE_URL ||
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    "http://localhost:3000";
+    process.env.APP_BASE_URL || process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
   const userName = profile?.name || "User";
   const subject = `[TEST] Last Message from ${userName} (Still Alive?)`;
   const body =
-    `This is a TEST email preview of your “Silly Last Words”.\n\n` +
+    `This is a TEST email preview of your "Silly Last Words".\n\n` +
     `Delivery threshold (configured): ${row?.deliveryThreshold ?? 48} hours\n` +
     `Dashboard: ${baseUrl}/dashboard\n\n` +
     `Your message:\n\n${clamp500(message)}\n\n` +
-    `— Sent automatically by Still Alive? (test mode)\n`;
+    `-- Sent automatically by Still Alive? (test mode)\n`;
 
   const results = await Promise.all(
     contacts.map(async (c) => {
@@ -71,3 +66,4 @@ export async function POST() {
 
   return Response.json({ ok: true, sent, failed, results });
 }
+
