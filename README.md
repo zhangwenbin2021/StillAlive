@@ -11,6 +11,17 @@ This project uses Prisma with a Postgres database (Supabase).
 npx prisma migrate dev --name init
 ```
 
+### Vercel / Supabase Pooler 注意事项
+
+如果你在 Vercel（Serverless）上使用 Supabase 的 Pooler（PgBouncer），可能会遇到 Prisma 报错：
+`prepared statement "...\" already exists`（Postgres code `42P05`）。
+
+推荐做法：
+
+1. `DATABASE_URL` 使用 Supabase 的 *Pooler* 连接串，并追加参数禁用 statement cache，例如：
+   - `... ?pgbouncer=true&statement_cache_size=0`
+2. 另设 `DIRECT_URL` 为 Supabase *Direct connection string*（用于 `prisma migrate` 等不走 pooler 的场景）。
+
 ## Getting Started
 
 First, run the development server:

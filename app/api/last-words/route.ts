@@ -1,4 +1,5 @@
 import { getPrisma } from "@/lib/prisma";
+import { getUserFacingDbError } from "@/lib/db-errors";
 import { createClient } from "@/lib/supabase/server";
 import { userToProfile } from "@/lib/supabase/user";
 import { upsertUserProfile } from "@/lib/user-profile";
@@ -82,8 +83,11 @@ export async function PUT(req: Request) {
       deliveryThreshold: updated.deliveryThreshold,
     });
   } catch (err) {
+    const userMsg = getUserFacingDbError(err);
+    if (userMsg) return Response.json({ error: userMsg }, { status: 500 });
+
     const msg =
-      err instanceof Error
+      process.env.NODE_ENV === "development" && err instanceof Error
         ? err.message
         : "Failed to save last words. Please try again later.";
     return Response.json({ error: msg }, { status: 500 });
@@ -111,8 +115,11 @@ export async function DELETE() {
 
     return Response.json({ ok: true });
   } catch (err) {
+    const userMsg = getUserFacingDbError(err);
+    if (userMsg) return Response.json({ error: userMsg }, { status: 500 });
+
     const msg =
-      err instanceof Error
+      process.env.NODE_ENV === "development" && err instanceof Error
         ? err.message
         : "Failed to delete last words. Please try again later.";
     return Response.json({ error: msg }, { status: 500 });
