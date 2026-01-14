@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 
 function Toast(props: { message: string }) {
   return (
@@ -51,16 +52,33 @@ export default function LoginPageClient(props: {
             Still Alive?
           </h1>
           <p className="mt-3 text-base text-[color:var(--sa-muted)] sm:text-lg">
-            Prove you&apos;re not MIA in 1 second a day.
+            给 StillALIVE 玩家：每天 1 秒签到，记录连击、冲榜、生成可分享的“仍存活”证明。
           </p>
           <p className="mt-2 text-sm text-[color:var(--sa-muted-2)]">
-            Daily ritual: press button &rarr; remain officially &quot;alive&quot; &rarr; return to your nonsense.
+            不想登录也没关系：先看看{" "}
+            <Link href="/leaderboard" className="sa-link">
+              排行榜
+            </Link>
+            {" / "}
+            <Link href="/demo" className="sa-link">
+              示例个人页
+            </Link>
+            。
           </p>
+
+          <div className="mt-5 flex w-full flex-col items-stretch gap-2 sm:flex-row sm:justify-center">
+            <Link href="/leaderboard" className="sa-btn sa-btn-soft sm:min-w-40">
+              查看排行榜
+            </Link>
+            <Link href="/demo" className="sa-btn sa-btn-soft sm:min-w-40">
+              查看示例个人页
+            </Link>
+          </div>
 
           {props.children}
 
           <footer className="mt-10 text-xs text-[color:var(--sa-muted-2)]">
-            Minimal data, maximum drama. (Google auth + your settings.)
+            只保存最少数据：Google 登录 + 你的设置。Minimal data, maximum drama.
           </footer>
         </div>
       </main>

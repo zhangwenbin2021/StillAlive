@@ -184,29 +184,52 @@ async function postCheckIn() {
   return (await res.json()) as { currentStreak: number; recent: RecentCheckIn[] };
 }
 
-function buildShareText(streak: number, badgeName: string) {
-  return `I've checked in for ${streak} consecutive days on Still Alive? and earned the ${badgeName} title. Join me so your friends don't file a missing-person report.`;
+async function postShareToken(badgeName: string) {
+  const res = await fetch("/api/share", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ badge: badgeName }),
+  });
+  if (!res.ok) {
+    const data = (await res.json().catch(() => null)) as { error?: string } | null;
+    throw new Error(data?.error || "Share failed");
+  }
+  return (await res.json()) as { token: string; text: string };
 }
 
-function ShareStreakButton(props: { streak: number; badgeName: string }) {
+function ShareStreakButton(props: {
+  badgeName: string;
+  onToast?: (message: string) => void;
+}) {
   const [isSharing, setIsSharing] = useState(false);
 
   async function onShare() {
     if (isSharing) return;
     setIsSharing(true);
     try {
-      const text = buildShareText(props.streak, props.badgeName);
-      const url = window.location.origin;
+      const { token, text } = await postShareToken(props.badgeName);
+      const url = `${window.location.origin}/s?t=${encodeURIComponent(token)}`;
 
       if (navigator.share) {
         await navigator.share({ text, url, title: "Still Alive?" });
+        props.onToast?.("已打开系统分享面板。");
         return;
       }
 
-      const intent = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
-        text,
-      )}&url=${encodeURIComponent(url)}`;
-      window.open(intent, "_blank", "noopener,noreferrer");
+      try {
+        await navigator.clipboard.writeText(url);
+        props.onToast?.("链接已复制，可直接贴到 Discord。");
+      } catch {
+        props.onToast?.("已生成链接，可复制浏览器地址栏发送。");
+      }
+
+      const wantX = window.confirm("链接已复制。要同时打开 X 发一条吗？");
+      if (wantX) {
+        const intent = `https://twitter.com/intent/tweet?text=${encodeURIComponent(`${text} ${url}`)}`;
+        window.open(intent, "_blank", "noopener,noreferrer");
+      }
+    } catch (e) {
+      props.onToast?.(e instanceof Error ? e.message : "分享失败");
     } finally {
       setIsSharing(false);
     }
@@ -215,7 +238,7 @@ function ShareStreakButton(props: { streak: number; badgeName: string }) {
   return (
     <button type="button" onClick={onShare} className="sa-btn sa-btn-soft inline-flex items-center gap-2">
       <ShareIcon className="h-4 w-4" />
-      <span>{isSharing ? "Sharing..." : "Share Streak"}</span>
+      <span>{isSharing ? "Sharing..." : "Share Card"}</span>
     </button>
   );
 }
@@ -269,6 +292,12 @@ export default function DashboardClient(props: {
   }
 
   const unlockedBadges = BADGES.map((b) => ({ ...b, unlocked: currentStreak >= b.threshold }));
+
+  function showToast(message: string, ms = 3200) {
+    setToast(message);
+    if (toastTimer.current) window.clearTimeout(toastTimer.current);
+    toastTimer.current = window.setTimeout(() => setToast(null), ms);
+  }
 
   return (
     <div className="sa-page">
@@ -370,7 +399,10 @@ export default function DashboardClient(props: {
                     </div>
 
                     {b.unlocked ? (
-                      <ShareStreakButton streak={currentStreak} badgeName={b.name} />
+                      <ShareStreakButton
+                        badgeName={b.name}
+                        onToast={showToast}
+                      />
                     ) : (
                       <div className="text-xs text-[color:var(--sa-muted-2)]">
                         Unlock at {b.threshold} days
